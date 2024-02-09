@@ -24,16 +24,33 @@ export default async (req, res) => {
     locale,
     border_radius,
     border_color,
+    description_lines_count,
   } = req.query;
 
   res.setHeader("Content-Type", "image/svg+xml");
 
   if (blacklist.includes(username)) {
-    return res.send(renderError("Something went wrong"));
+    return res.send(
+      renderError("Something went wrong", "This username is blacklisted", {
+        title_color,
+        text_color,
+        bg_color,
+        border_color,
+        theme,
+      }),
+    );
   }
 
   if (locale && !isLocaleAvailable(locale)) {
-    return res.send(renderError("Something went wrong", "Language not found"));
+    return res.send(
+      renderError("Something went wrong", "Language not found", {
+        title_color,
+        text_color,
+        bg_color,
+        border_color,
+        theme,
+      }),
+    );
   }
 
   try {
@@ -41,7 +58,7 @@ export default async (req, res) => {
 
     let cacheSeconds = clampValue(
       parseInt(cache_seconds || CONSTANTS.CARD_CACHE_SECONDS, 10),
-      CONSTANTS.FOUR_HOURS,
+      CONSTANTS.SIX_HOURS,
       CONSTANTS.ONE_DAY,
     );
     cacheSeconds = process.env.CACHE_SECONDS
@@ -58,7 +75,7 @@ export default async (req, res) => {
     const isBothOver1K = stars > 1000 && forks > 1000;
     const isBothUnder1 = stars < 1 && forks < 1;
     if (!cache_seconds && (isBothOver1K || isBothUnder1)) {
-      cacheSeconds = CONSTANTS.FOUR_HOURS;
+      cacheSeconds = CONSTANTS.SIX_HOURS;
     }
 
     res.setHeader(
@@ -80,6 +97,7 @@ export default async (req, res) => {
         border_color,
         show_owner: parseBoolean(show_owner),
         locale: locale ? locale.toLowerCase() : null,
+        description_lines_count,
       }),
     );
   } catch (err) {
@@ -89,6 +107,14 @@ export default async (req, res) => {
         CONSTANTS.ERROR_CACHE_SECONDS
       }, stale-while-revalidate=${CONSTANTS.ONE_DAY}`,
     ); // Use lower cache period for errors.
-    return res.send(renderError(err.message, err.secondaryMessage));
+    return res.send(
+      renderError(err.message, err.secondaryMessage, {
+        title_color,
+        text_color,
+        bg_color,
+        border_color,
+        theme,
+      }),
+    );
   }
 };
